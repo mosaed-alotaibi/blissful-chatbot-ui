@@ -31,19 +31,26 @@ export const Chatbot = () => {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const generateBotResponse = (userMessage: string): string => {
-    const responses = [
-      "That's an interesting question! Let me think about that for a moment.",
-      "I understand what you're asking. Here's what I think...",
-      "Thanks for sharing that with me. Based on what you've said, I'd suggest...",
-      "That's a great point! Let me provide you with some insights on that topic.",
-      "I appreciate you asking that. Here's my perspective...",
-      "Excellent question! Let me break that down for you.",
-      "I can definitely help with that. Here's what you should know...",
-      "That's something I can assist you with. Let me explain...",
-    ];
-    
-    return responses[Math.floor(Math.random() * responses.length)];
+  const callChatAPI = async (message: string): Promise<string> => {
+    try {
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response || "I'm sorry, I couldn't process your request.";
+    } catch (error) {
+      console.error('Error calling chat API:', error);
+      return "I'm sorry, I'm having trouble connecting right now. Please try again.";
+    }
   };
 
   const handleSendMessage = async (messageText: string) => {
@@ -58,13 +65,13 @@ export const Chatbot = () => {
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Simulate AI thinking time
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+    // Get bot response from API
+    const botResponseText = await callChatAPI(messageText);
 
     // Add bot response
     const botMessage: Message = {
       id: (Date.now() + 1).toString(),
-      text: generateBotResponse(messageText),
+      text: botResponseText,
       isUser: false,
       timestamp: new Date()
     };
